@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="fr.irsn.openradroid.openradroid.MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/f_random_sensor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="start_random_sensor_activity"
+            android:text="Random sensor" />
+
+        <Button
+            android:id="@+id/f_upmc_sensor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="start_upmc_sensor_activity"
+            android:text="UPMC sensor" />
+
+        <Button
+            android:id="@+id/f_pocketgeiger_sensor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="start_pocketgeiger_sensor_activity"
+            android:text="Pocket Geiger Sensor" />
+    </LinearLayout>
+</android.support.constraint.ConstraintLayout>
