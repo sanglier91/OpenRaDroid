@@ -16,7 +16,7 @@ public class RandomSensorActivity extends AppCompatActivity {
 
     private TextView f_log;
     private SeekBar f_cpm;
-    private EditText f_nb_counts;
+    private TextView f_nb_counts;
     private RandomSensor m_sensor;
     private int m_nb_counts;
 

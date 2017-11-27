@@ -22,6 +22,7 @@ import java.util.List;
 public class PocketGeigerSensor implements SensorInterface {
 
     private static String TAG = PocketGeigerSensor.class.getName ();
+
     private final Handler m_handler;
     private boolean m_stop = false;
     private Context m_context;
@@ -49,11 +50,14 @@ public class PocketGeigerSensor implements SensorInterface {
         @Override
         public void run () {
 
+            send_log ("Starting sensor ...");
+
             UsbManager usbManager = (UsbManager) m_context.getSystemService (Context.USB_SERVICE);
 
             // Vendor Id and Product Id for Microchip Type 6
             ProbeTable customTable = new ProbeTable ();
             customTable.addProduct (1240, 62575, CdcAcmSerialDriver.class);
+
 
             // Find the above device
             UsbSerialProber prober = new UsbSerialProber (customTable);

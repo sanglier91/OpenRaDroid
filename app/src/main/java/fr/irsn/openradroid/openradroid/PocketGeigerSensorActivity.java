@@ -4,11 +4,14 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
 public class PocketGeigerSensorActivity extends AppCompatActivity {
+
+    private static String TAG = PocketGeigerSensorActivity.class.getName ();
 
     private TextView f_log;
     private TextView f_nb_counts;

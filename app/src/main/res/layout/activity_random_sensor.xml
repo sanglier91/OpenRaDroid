@@ -12,12 +12,10 @@
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <EditText
-            android:id="@+id/f_cpm_label"
+        <TextView
+            android:id="@+id/textView4"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ems="10"
-            android:inputType="textPersonName"
             android:text="Probability :" />
 
         <SeekBar
@@ -54,19 +52,18 @@
 
         </LinearLayout>
 
-        <EditText
+        <TextView
             android:id="@+id/f_nb_counts"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ems="10"
-            android:inputType="textPersonName" />
+            android:text="0"
+            android:textAlignment="center"
+            android:visibility="visible" />
 
-        <EditText
-            android:id="@+id/editText2"
+        <TextView
+            android:id="@+id/textView3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ems="10"
-            android:inputType="textPersonName"
             android:text="Log :" />
 
         <TextView
