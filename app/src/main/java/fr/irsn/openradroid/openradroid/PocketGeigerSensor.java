@@ -66,6 +66,7 @@ public class PocketGeigerSensor implements SensorInterface {
                 send_log ("No device found");
                 return;
             }
+            send_log ("Found device !");
 
             // Get the first and only available driver
             UsbSerialDriver driver = availableDrivers.get (0);
@@ -75,6 +76,7 @@ public class PocketGeigerSensor implements SensorInterface {
                 send_log ("Can't open the device");
                 return;
             }
+            send_log ("Device is open !");
 
             UsbSerialPort port = driver.getPorts ().get (0);
 
@@ -94,7 +96,7 @@ public class PocketGeigerSensor implements SensorInterface {
                     nb_bytes_read = port.read (buffer, 100);
 
                     if (noise_rejection_until != 0) {
-                        Log.d (TAG, "noise reject !");
+                        send_log( "noise rejection in progress ...");
                         long current_time = System.currentTimeMillis ();
                         if (current_time > noise_rejection_until) {
                             noise_rejection_until = 0;
@@ -106,7 +108,7 @@ public class PocketGeigerSensor implements SensorInterface {
                             (buffer[1] < '0' && buffer[1] > '9') ||
                             buffer[2] != ',' ||
                             (buffer[3] < '0' && buffer[3] > '9')) {
-                        Log.d (TAG, "Bad frame format");
+                        send_error ("Bad frame format");
                         continue;
                     }
 
@@ -114,6 +116,7 @@ public class PocketGeigerSensor implements SensorInterface {
                     int noise = buffer[3] - '0';
 
                     if (noise > 0) {
+                        send_log("Get noise");
                         noise_rejection_until = System.currentTimeMillis () + NOISE_REJECT_DURATION;
                         continue;
                     }
