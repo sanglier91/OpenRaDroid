@@ -2,9 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="fr.irsn.openradroid.openradroid">
 
+
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
     <!--uses-feature android:name="android.hardware.usb.accessory" /-->
     <uses-feature android:name="android.hardware.usb.host" />
-
 
     <application
         android:allowBackup="true"
