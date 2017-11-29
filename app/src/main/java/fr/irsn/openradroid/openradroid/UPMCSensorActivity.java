@@ -4,10 +4,13 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
 public class UPMCSensorActivity extends AppCompatActivity {
+
+    private static String TAG = UPMCSensorActivity.class.getName();
 
     private UPMCSensor m_sensor;
     private int m_nb_counts;
@@ -37,7 +40,8 @@ public class UPMCSensorActivity extends AppCompatActivity {
         f_log = findViewById (R.id.f_log);
         f_nb_counts = findViewById (R.id.f_nb_counts);
 
-        m_sensor = new UPMCSensor (m_handler);
+        m_sensor = new UPMCSensor (m_handler, this);
+
     }
 
 
@@ -50,6 +54,7 @@ public class UPMCSensorActivity extends AppCompatActivity {
     }
 
     public void start_counting () {
+        Log.d (TAG, "start");
         if (m_sensor.is_started ())
             return;
         m_nb_counts = 0;
