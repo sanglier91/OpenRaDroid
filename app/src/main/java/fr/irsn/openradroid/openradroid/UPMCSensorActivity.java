@@ -44,6 +44,7 @@ public class UPMCSensorActivity extends AppCompatActivity {
 
     }
 
+    public void bt_connect (View view) {connect (); }
 
     public void bt_start (View view) {
         start_counting ();
@@ -53,8 +54,12 @@ public class UPMCSensorActivity extends AppCompatActivity {
         stop_counting ();
     }
 
+    public void connect () {
+        m_sensor.connect ();
+    }
+
     public void start_counting () {
-        Log.d (TAG, "start");
+        //Log.d (TAG, "start");
         if (m_sensor.is_started ())
             return;
         m_nb_counts = 0;

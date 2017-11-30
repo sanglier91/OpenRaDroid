@@ -16,7 +16,11 @@ import android.content.IntentFilter;
 import android.os.Handler;
 import android.util.Log;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.UUID;
+import java.util.Vector;
 
 /**
  * Created by wilfried on 19/11/17.
@@ -38,6 +42,7 @@ public class UPMCSensor implements SensorInterface, BluetoothAdapter.LeScanCallb
 
     private final static UUID UUID_SERVICE = sixteenBitUuid(0x2220);
     public final static UUID UUID_RECEIVE = sixteenBitUuid(0x2221);
+    public final static UUID UUID_SEND = sixteenBitUuid(0x2222);
     public final static UUID UUID_CLIENT_CONFIGURATION = sixteenBitUuid(0x2902);
 
     private static UUID sixteenBitUuid (long shortUuid) {
@@ -53,6 +58,14 @@ public class UPMCSensor implements SensorInterface, BluetoothAdapter.LeScanCallb
                 .append("\nRSSI: ").append(rssi)
                 .append("\nScan Record:").append(parseScanRecord(scanRecord))
                 .toString();
+    }
+
+    private void send_log (String msg) {
+        m_handler.sendMessage (m_handler.obtainMessage (1, msg));
+    }
+
+    private void send_error (String msg) {
+        m_handler.sendMessage (m_handler.obtainMessage (2, msg));
     }
 
     // Bluetooth Spec V4.0 - Vol 3, Part C, section 8
@@ -85,93 +98,84 @@ public class UPMCSensor implements SensorInterface, BluetoothAdapter.LeScanCallb
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
+
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                Log.i(TAG, "Connected to RFduino.");
-                Log.i(TAG, "Attempting to start service discovery:" + m_bluetoothGatt.discoverServices());
+                send_log ("Connected to RFduino.");
+                m_bluetoothGatt.discoverServices();
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                Log.i(TAG, "Disconnected from RFduino.");
-                //broadcastUpdate(ACTION_DISCONNECTED);
+                send_log ("Disconnected from RFduino.");
             }
         }
 
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                m_bluetoothGattService = gatt.getService(UUID_SERVICE);
-                if (m_bluetoothGattService == null) {
-                    Log.e (TAG, "RFduino GATT service not found!");
-                    return;
-                }
 
-                BluetoothGattCharacteristic receiveCharacteristic = m_bluetoothGattService.getCharacteristic(UUID_RECEIVE);
-                if (receiveCharacteristic != null) {
-                    BluetoothGattDescriptor receiveConfigDescriptor = receiveCharacteristic.getDescriptor(UUID_CLIENT_CONFIGURATION);
-                    if (receiveConfigDescriptor != null) {
-                        gatt.setCharacteristicNotification(receiveCharacteristic, true);
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                send_error ("Services discovered failed!");
+                return;
+            }
 
-                        receiveConfigDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                        gatt.writeDescriptor(receiveConfigDescriptor);
-                    } else {
-                        Log.e (TAG, "RFduino receive config descriptor not found!");
-                    }
+            m_bluetoothGattService = gatt.getService(UUID_SERVICE);
+            if (m_bluetoothGattService == null) {
+                send_error ("RFduino GATT service not found!");
+                return;
+            }
 
-                } else {
-                    Log.e (TAG, "RFduino receive characteristic not found!");
-                }
+            BluetoothGattCharacteristic receiveCharacteristic = m_bluetoothGattService.getCharacteristic(UUID_RECEIVE);
+            if (receiveCharacteristic == null) {
+                send_error ("RFduino receive characteristic not found!");
+                return;
+            }
 
-                //broadcastUpdate(ACTION_CONNECTED);
-            } else {
-                Log.w(TAG, "onServicesDiscovered received: " + status);
+            BluetoothGattDescriptor receiveConfigDescriptor = receiveCharacteristic.getDescriptor(UUID_CLIENT_CONFIGURATION);
+
+            if (receiveConfigDescriptor == null) {
+                send_error ("RFduino receive config descriptor not found!");
+            }
+
+            gatt.setCharacteristicNotification (receiveCharacteristic, true);
+            receiveConfigDescriptor.setValue (BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+            gatt.writeDescriptor (receiveConfigDescriptor);
+
+            send_log ("Service discovered");
+        }
+
+        @Override
+        public void onCharacteristicRead (BluetoothGatt gatt,
+                                          BluetoothGattCharacteristic characteristic,
+                                          int status) {
+        }
+
+        @Override
+        public void onCharacteristicChanged (BluetoothGatt gatt,
+                                             BluetoothGattCharacteristic characteristic) {
+
+            byte [] data = characteristic.getValue();
+
+            if (data.length == 0)
+                return;
+
+            if (data[0] == 0x3) {
+                int len = (int)data[1];
+                StringBuffer str_buff = new StringBuffer(len);
+                for (int i = 0; i < len; i++)
+                    str_buff.append ((char)data[i+2]);
+                send_log("Sensor type = " + str_buff);
+            }
+
+            if (data[0] == 0x10) {
+                int len = (int)data[1];
+                StringBuffer str_buff = new StringBuffer(len);
+                for (int i = 0; i < len; i++)
+                    str_buff.append ((char)data[i+2]);
+                send_log("Tybe type = " + str_buff);
             }
         }
-
-        @Override
-        public void onCharacteristicRead(BluetoothGatt gatt,
-                                         BluetoothGattCharacteristic characteristic,
-                                         int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                //broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
-            }
-        }
-
-        @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt,
-                                            BluetoothGattCharacteristic characteristic) {
-            //broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
-        }
     };
 
-    private final BroadcastReceiver bluetoothStateReceiver = new BroadcastReceiver () {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, 0);
-            Log.d (TAG, "bluetoothStateReceiver = " + state);
-            if (state == BluetoothAdapter.STATE_ON) {
-
-            } else if (state == BluetoothAdapter.STATE_OFF) {
-
-            }
-        }
-    };
-
-    private final BroadcastReceiver scanModeReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            boolean ret = m_bluetoothAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_NONE;
-            Log.d (TAG, "ScanMode : " + String.valueOf (ret));
-        }
-    };
-
-
-    private final BroadcastReceiver rfduinoReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-            Log.d (TAG, action);
-        }
-    };
 
     public UPMCSensor (Handler handler, Context context) {
         m_handler = handler;
@@ -179,46 +183,39 @@ public class UPMCSensor implements SensorInterface, BluetoothAdapter.LeScanCallb
     }
 
 
-    @Override
-    public void start () {
-
-        Log.d (TAG, "start");
-
+    public void connect () {
 
         m_BluetoothManager = (BluetoothManager) m_context.getSystemService(Context.BLUETOOTH_SERVICE);
         if (m_BluetoothManager == null) {
-            Log.e (TAG, "Unable to initialize BluetoothManager.");
+            send_error ("Unable to initialize BluetoothManager.");
             return;
         }
 
         m_bluetoothAdapter = m_BluetoothManager.getAdapter();
         if (m_bluetoothAdapter == null) {
-            Log.e (TAG, "Unable to obtain a BluetoothAdapter.");
+            send_error ("Unable to obtain a BluetoothAdapter.");
             return;
         }
 
         if (m_bluetoothAdapter.isEnabled() == false) {
-            Log.d (TAG, "BLE not enable");
+            send_error ("BLE not enable");
             return;
         }
 
-        //m_bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        m_bluetoothAdapter.startLeScan(new UUID[]{ UUID_SERVICE },UPMCSensor.this);
+    }
 
-        m_context.registerReceiver (scanModeReceiver, new IntentFilter (BluetoothAdapter.ACTION_SCAN_MODE_CHANGED));
-        m_context.registerReceiver (bluetoothStateReceiver, new IntentFilter (BluetoothAdapter.ACTION_STATE_CHANGED));
+    @Override
+    public void start () {
 
-        /*IntentFilter filter = new IntentFilter();
-        filter.addAction(ACTION_CONNECTED);
-        filter.addAction(ACTION_DISCONNECTED);
-        filter.addAction(ACTION_DATA_AVAILABLE);
-        m_context.registerReceiver(rfduinoReceiver, filter);*/
+        //Log.d (TAG, "start");
 
-
-
-        m_bluetoothAdapter.startLeScan(
-                new UUID[]{ UUID_SERVICE },
-                UPMCSensor.this);
-
+        BluetoothGattCharacteristic characteristic = m_bluetoothGattService.getCharacteristic (UUID_SEND);
+        byte [] data = {0x12};
+        characteristic.setValue (data);
+        characteristic.setWriteType (BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+        boolean ret = m_bluetoothGatt.writeCharacteristic (characteristic);
+        //Log.d (TAG, "Send return = "+ ret);
     }
 
     @Override
@@ -228,10 +225,6 @@ public class UPMCSensor implements SensorInterface, BluetoothAdapter.LeScanCallb
         m_bluetoothGatt.disconnect();
         m_bluetoothGatt.close();
         m_bluetoothGatt = null;
-
-        m_context.unregisterReceiver (scanModeReceiver);
-        m_context.unregisterReceiver (bluetoothStateReceiver);
-        //m_context.unregisterReceiver (rfduinoReceiver);
     }
 
     @Override
@@ -244,17 +237,8 @@ public class UPMCSensor implements SensorInterface, BluetoothAdapter.LeScanCallb
         m_bluetoothAdapter.stopLeScan(this);
         m_bluetoothDevice = device;
 
-
-
-        Log.d (TAG, getDeviceInfoText(m_bluetoothDevice, rssi, scanRecord));
-
-        Log.d (TAG, m_bluetoothDevice.getAddress());
-
+        send_log (getDeviceInfoText(m_bluetoothDevice, rssi, scanRecord));
         //final BluetoothDevice device = m_bluetoothAdapter.getRemoteDevice (m_bluetoothDevice.getAddress());
-
-        m_bluetoothGatt = device.connectGatt(m_context, false, mGattCallback);
-        Log.d(TAG, "Trying to create a new connection.");
-
-
+        m_bluetoothGatt = m_bluetoothDevice.connectGatt (m_context, false, mGattCallback);
     }
 }
